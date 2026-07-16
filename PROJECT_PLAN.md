@@ -90,11 +90,11 @@ These features are required by the business rules but don't exist yet.
 
 ## Phase 3 — UI/UX Polish
 
-- [ ] **3.1 Checkout: Terms & Conditions checkbox**
+- [x] **3.1 Checkout: Terms & Conditions checkbox**
   - File: `frontend/src/pages/Checkout.jsx`
   - Add "I agree to Terms" checkbox listing: petrol cost, 1,000 TK sand fine, 2,000 TK helmet fine, 5,000 TK boundary fine, damage liability. Disable "Proceed to Payment" until checked.
 
-- [ ] **3.2 Toast notifications**
+- [x] **3.2 Toast notifications**
   - Files: New `frontend/src/components/Toast.jsx`, update all pages with `alert()`
   - Replace every `alert()` call with a simple toast component (success/error variants, auto-dismiss after 3s).
 
@@ -102,7 +102,7 @@ These features are required by the business rules but don't exist yet.
   - Files: All frontend pages
   - Replace "Loading..." text with a spinner component. Add skeleton loaders for bike cards on Home page.
 
-- [ ] **3.4 Payment failed/cancelled pages**
+- [x] **3.4 Payment failed/cancelled pages**
   - Files: New `frontend/src/pages/PaymentFailed.jsx`, `frontend/src/pages/PaymentCancelled.jsx`, update `frontend/src/App.jsx`
   - Add routes `/payment-failed` and `/payment-cancelled`. Show friendly message with "Try Again" link back to home.
 
@@ -110,11 +110,11 @@ These features are required by the business rules but don't exist yet.
   - Files: All frontend components
   - Test at 320px, 375px, 768px, 1024px widths. Fix overflow on tables, form fields, bike cards. Ensure touch-friendly tap targets (min 44px).
 
-- [ ] **3.6 Dead code cleanup**
+- [x] **3.6 Dead code cleanup**
   - Files: `frontend/src/App.css`, `frontend/src/assets/`
   - Delete `App.css` (unused Vite boilerplate). Delete unused assets (`hero.png`, `vite.svg`, `react.svg`).
 
-- [ ] **3.7 RenterDashboard: Availability toggle**
+- [x] **3.7 RenterDashboard: Availability toggle**
   - Files: `frontend/src/pages/RenterDashboard.jsx`, `backend/controllers/dashboardController.js`, `backend/routes/dashboard.js`
   - Add `PUT /api/dashboard/bikes/:id/availability` to toggle availability (for when a bike is returned). Add toggle button in renter dashboard.
 
