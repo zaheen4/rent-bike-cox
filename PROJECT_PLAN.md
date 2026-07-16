@@ -98,7 +98,7 @@ These features are required by the business rules but don't exist yet.
   - Files: New `frontend/src/components/Toast.jsx`, update all pages with `alert()`
   - Replace every `alert()` call with a simple toast component (success/error variants, auto-dismiss after 3s).
 
-- [ ] **3.3 Better loading states**
+- [x] **3.3 Better loading states**
   - Files: All frontend pages
   - Replace "Loading..." text with a spinner component. Add skeleton loaders for bike cards on Home page.
 
