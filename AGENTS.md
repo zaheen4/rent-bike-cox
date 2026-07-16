@@ -72,7 +72,6 @@ NID/license images and bike photos go through multer → Cloudinary. Folders: `r
 - Express 5 — route errors propagate differently than Express 4
 - `process.env` loads from `backend/.env` via dotenv at server start
 - Frontend env vars must be prefixed with `VITE_` to be exposed to client code
-- No protected routes on frontend — auth is checked ad-hoc in components
 - No global state management — all state is local `useState`, auth token in `localStorage`
 
 ## Business Rules
