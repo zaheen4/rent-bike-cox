@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const BikeDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [bike, setBike] = useState(null);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchBike = async () => {
@@ -30,7 +31,7 @@ const BikeDetails = () => {
   }, [id]);
 
   const handleBooking = () => {
-    if (!token) {
+    if (!user) {
       navigate('/login');
     } else {
       navigate(`/checkout/${id}`);

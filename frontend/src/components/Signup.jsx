@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -9,7 +10,9 @@ const Signup = () => {
   });
   const [nidFile, setNidFile] = useState(null);
   const [licenseFile, setLicenseFile] = useState(null);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,12 +20,13 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setError('');
+
     const formDataToSend = new FormData();
     Object.keys(formData).forEach(key => {
       formDataToSend.append(key, formData[key]);
     });
-    
+
     if (nidFile) formDataToSend.append('nidImage', nidFile);
     if (licenseFile) formDataToSend.append('licenseImage', licenseFile);
 
@@ -30,10 +34,10 @@ const Signup = () => {
       const response = await api.post('/auth/register', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      localStorage.setItem('token', response.data.token);
+      login(response.data.token);
       navigate('/');
     } catch (error) {
-      alert(error.response?.data?.message || 'Signup failed');
+      setError(error.response?.data?.message || 'Signup failed');
     }
   };
 
@@ -41,6 +45,11 @@ const Signup = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded mb-4 text-sm">
+            {error}
+          </div>
+        )}
         <div className="space-y-4">
           <input type="text" name="name" placeholder="Full Name" onChange={handleChange} className="w-full p-2 border rounded" required />
           <input type="email" name="email" placeholder="Email" onChange={handleChange} className="w-full p-2 border rounded" required />

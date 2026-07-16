@@ -1,13 +1,13 @@
-import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Phone, Bike } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    logout();
     navigate('/login');
   };
 
@@ -34,13 +34,21 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            {token ? (
-              <button 
-                onClick={handleLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600"
-              >
-                Logout
-              </button>
+            {user ? (
+              <>
+                {user.role === 'Renter' && (
+                  <Link to="/renter-dashboard" className="text-gray-700 hover:text-blue-600 text-sm">My Bikes</Link>
+                )}
+                {user.role === 'Admin' && (
+                  <Link to="/admin-dashboard" className="text-gray-700 hover:text-blue-600 text-sm">Admin</Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600"
+                >
+                  Logout
+                </button>
+              </>
             ) : (
               <>
                 <Link to="/login" className="text-gray-700 hover:text-blue-600">Login</Link>
