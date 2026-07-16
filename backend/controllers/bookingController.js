@@ -1,10 +1,12 @@
 const Booking = require('../models/Booking');
 const Bike = require('../models/Bike');
 const User = require('../models/User');
+const Coupon = require('../models/Coupon');
+const Settings = require('../models/Settings');
 
 exports.createBooking = async (req, res) => {
   try {
-    const { bikeId, startTime, endTime, couponCode } = req.body;
+    const { bikeId, startTime, endTime, couponCode, packageName } = req.body;
 
     const user = await User.findById(req.user.id);
     if (!user || !user.isVerified) {
@@ -21,17 +23,28 @@ exports.createBooking = async (req, res) => {
 
     const hours = Math.ceil((end - start) / (1000 * 60 * 60));
     if (hours < 1) return res.status(400).json({ message: 'Minimum rental duration is 1 hour' });
-    
-    let totalPrice = hours * bike.pricePerHour;
-    
-    // Simple coupon logic
-    if (couponCode === 'WELCOME10') {
-      totalPrice *= 0.9;
+
+    let totalPrice;
+    if (packageName) {
+      const settings = await Settings.findOne();
+      const pkg = settings?.packages?.find(p => p.name === packageName);
+      if (!pkg) return res.status(400).json({ message: 'Invalid package' });
+      totalPrice = pkg.price;
+    } else {
+      totalPrice = hours * bike.pricePerHour;
     }
 
-    // 50% Advance Rule for short rentals (<= 24 hours)
+    let discountPercent = 0;
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), active: true });
+      if (coupon) {
+        discountPercent = coupon.discountPercent;
+        totalPrice *= (1 - discountPercent / 100);
+      }
+    }
+
     const isShortRental = hours <= 24;
-    const minAdvance = isShortRental ? totalPrice * 0.5 : totalPrice * 0.3; // Example: 30% for long term
+    const minAdvance = isShortRental ? totalPrice * 0.5 : totalPrice * 0.3;
 
     const booking = new Booking({
       user: req.user.id,
@@ -39,7 +52,7 @@ exports.createBooking = async (req, res) => {
       startTime,
       endTime,
       totalPrice,
-      advancePaid: 0, // Will be updated after payment
+      advancePaid: 0,
       status: 'Pending'
     });
 

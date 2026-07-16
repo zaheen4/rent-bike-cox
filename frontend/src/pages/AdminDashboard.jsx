@@ -6,19 +6,23 @@ const AdminDashboard = () => {
   const [settings, setSettings] = useState({ basePricePerHour: 200, packages: [] });
   const [bikes, setBikes] = useState([]);
   const [users, setUsers] = useState([]);
+  const [coupons, setCoupons] = useState([]);
   const [activeTab, setActiveTab] = useState('settings');
+  const [newCoupon, setNewCoupon] = useState({ code: '', discountPercent: '' });
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [settingsRes, bikesRes, usersRes] = await Promise.all([
+        const [settingsRes, bikesRes, usersRes, couponsRes] = await Promise.all([
           api.get('/dashboard/settings'),
           api.get('/dashboard/admin/bikes'),
-          api.get('/dashboard/admin/users')
+          api.get('/dashboard/admin/users'),
+          api.get('/coupon')
         ]);
         setSettings(settingsRes.data);
         setBikes(bikesRes.data);
         setUsers(usersRes.data);
+        setCoupons(couponsRes.data);
       } catch (err) {
         console.error(err);
       }
@@ -183,7 +187,96 @@ const AdminDashboard = () => {
 
       {activeTab === 'coupons' && (
         <div className="bg-white p-6 rounded shadow-md">
-          <p className="text-gray-500">Coupon management coming soon.</p>
+          <h2 className="text-xl font-bold mb-4">Manage Coupons</h2>
+
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const res = await api.post('/coupon', newCoupon);
+              setCoupons([res.data, ...coupons]);
+              setNewCoupon({ code: '', discountPercent: '' });
+            } catch (err) {
+              alert(err.response?.data?.message || 'Failed to create coupon');
+            }
+          }} className="flex gap-4 mb-6">
+            <input
+              type="text"
+              placeholder="Coupon code"
+              value={newCoupon.code}
+              onChange={e => setNewCoupon({...newCoupon, code: e.target.value})}
+              className="border p-2 rounded flex-1"
+              required
+            />
+            <input
+              type="number"
+              placeholder="Discount %"
+              min="1"
+              max="100"
+              value={newCoupon.discountPercent}
+              onChange={e => setNewCoupon({...newCoupon, discountPercent: e.target.value})}
+              className="border p-2 rounded w-32"
+              required
+            />
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              Add
+            </button>
+          </form>
+
+          <table className="w-full text-left">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="p-4">Code</th>
+                <th className="p-4">Discount</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {coupons.map(coupon => (
+                <tr key={coupon._id} className="border-t">
+                  <td className="p-4 font-mono font-bold">{coupon.code}</td>
+                  <td className="p-4">{coupon.discountPercent}%</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded text-xs ${coupon.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {coupon.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="p-4 space-x-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await api.put(`/coupon/${coupon._id}`, { active: !coupon.active });
+                          setCoupons(coupons.map(c => c._id === coupon._id ? res.data : c));
+                        } catch {
+                          alert('Failed to toggle coupon');
+                        }
+                      }}
+                      className={`px-3 py-1 rounded text-xs ${coupon.active ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                    >
+                      {coupon.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm('Delete this coupon?')) return;
+                        try {
+                          await api.delete(`/coupon/${coupon._id}`);
+                          setCoupons(coupons.filter(c => c._id !== coupon._id));
+                        } catch {
+                          alert('Failed to delete coupon');
+                        }
+                      }}
+                      className="px-3 py-1 rounded text-xs bg-red-100 text-red-700 hover:bg-red-200"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {coupons.length === 0 && (
+                <tr><td colSpan="4" className="p-4 text-center text-gray-500">No coupons yet</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
