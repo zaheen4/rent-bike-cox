@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { CreditCard } from 'lucide-react';
+import Spinner from '../components/Spinner';
 
 const formatDateTime = (date) => {
   const d = new Date(date);
@@ -105,7 +106,7 @@ const Checkout = () => {
     });
   };
 
-  if (!bike) return <div className="p-8 text-center">Loading...</div>;
+  if (!bike) return <Spinner />;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

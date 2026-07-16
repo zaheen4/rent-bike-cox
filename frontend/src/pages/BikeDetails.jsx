@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import Spinner from '../components/Spinner';
 
 const BikeDetails = () => {
   const { id } = useParams();
@@ -38,7 +39,7 @@ const BikeDetails = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) return <Spinner />;
   if (!bike) return <div className="p-8 text-center">Bike not found.</div>;
 
   return (

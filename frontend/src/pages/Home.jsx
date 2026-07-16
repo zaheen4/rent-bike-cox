@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import Spinner from '../components/Spinner';
 
 const Home = () => {
   const [bikes, setBikes] = useState([]);
@@ -20,7 +21,7 @@ const Home = () => {
     fetchBikes();
   }, []);
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) return <Spinner />;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
