@@ -21,6 +21,7 @@ const Checkout = () => {
   const [bookingData, setBookingData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     const fetchBike = async () => {
@@ -207,6 +208,27 @@ const Checkout = () => {
               )}
             </div>
 
+            {/* Terms & Conditions */}
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <h4 className="font-bold text-sm mb-2">Terms & Conditions</h4>
+              <ul className="text-xs text-gray-600 space-y-1 mb-3">
+                <li>• Petrol cost is not included in the rental price</li>
+                <li>• 1,000 TK fine for taking the bike on beach sand</li>
+                <li>• 2,000 TK fine for lost or damaged helmet</li>
+                <li>• 5,000 TK fine for crossing the designated boundary</li>
+                <li>• You are liable for any physical damage to the vehicle</li>
+              </ul>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-1"
+                />
+                <span className="text-sm">I have read and agree to the Terms & Conditions</span>
+              </label>
+            </div>
+
             {/* Payment */}
             <div className="space-y-4 pt-4">
               <h3 className="font-bold flex items-center">
@@ -216,11 +238,14 @@ const Checkout = () => {
 
               <button
                 onClick={handlePayment}
-                disabled={loading}
-                className={`w-full p-4 rounded font-bold text-white transition bg-blue-600 hover:bg-blue-700 ${loading && 'opacity-50 cursor-not-allowed'}`}
+                disabled={loading || !termsAccepted}
+                className={`w-full p-4 rounded font-bold text-white transition bg-blue-600 hover:bg-blue-700 ${(loading || !termsAccepted) && 'opacity-50 cursor-not-allowed'}`}
               >
                 {loading ? 'Initializing Payment...' : 'Proceed to Payment'}
               </button>
+              {!termsAccepted && (
+                <p className="text-xs text-red-500 text-center">Please accept the Terms & Conditions to proceed</p>
+              )}
             </div>
           </>
         )}

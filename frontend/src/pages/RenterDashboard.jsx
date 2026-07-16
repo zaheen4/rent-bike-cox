@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { PlusCircle, Bike as BikeIcon } from 'lucide-react';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from '../components/Toast';
 
 const RenterDashboard = () => {
+  const { show: showToast, toasts, dismiss } = useToast();
   const [bikes, setBikes] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newBike, setNewBike] = useState({
     model: '', brand: '', category: 'Bike', description: '', pricePerHour: 200, images: []
   });
   const [bikeFiles, setBikeFiles] = useState([]);
-
-  useEffect(() => {
-    fetchMyBikes();
-  }, []);
 
   const fetchMyBikes = async () => {
     try {
@@ -22,6 +21,11 @@ const RenterDashboard = () => {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchMyBikes();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,8 +47,8 @@ const RenterDashboard = () => {
       });
       setShowForm(false);
       fetchMyBikes();
-    } catch (err) {
-      alert('Failed to add bike');
+    } catch {
+      showToast('Failed to add bike', 'error');
     }
   };
 
@@ -85,20 +89,39 @@ const RenterDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {bikes.map(bike => (
-          <div key={bike._id} className="bg-white p-4 rounded shadow flex items-center">
-            <div className="bg-blue-100 p-3 rounded-full mr-4">
-              <BikeIcon className="text-blue-600" />
+          <div key={bike._id} className="bg-white p-4 rounded shadow">
+            <div className="flex items-center mb-4">
+              <div className="bg-blue-100 p-3 rounded-full mr-4">
+                <BikeIcon className="text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{bike.model}</h3>
+                <p className="text-gray-500">{bike.brand} - {bike.pricePerHour} TK/hr</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-lg">{bike.model}</h3>
-              <p className="text-gray-500">{bike.brand} - {bike.pricePerHour} TK/hr</p>
-              <p className={`text-sm ${bike.availability ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="flex items-center justify-between">
+              <span className={`px-2 py-1 rounded text-xs ${bike.availability ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {bike.availability ? 'Available' : 'Booked'}
-              </p>
+              </span>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await api.put(`/dashboard/bikes/${bike._id}/availability`);
+                    setBikes(bikes.map(b => b._id === bike._id ? res.data : b));
+                    showToast('Availability updated', 'success');
+                  } catch {
+                    showToast('Failed to update availability', 'error');
+                  }
+                }}
+                className={`px-3 py-1 rounded text-xs ${bike.availability ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+              >
+                {bike.availability ? 'Mark Booked' : 'Mark Available'}
+              </button>
             </div>
           </div>
         ))}
       </div>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 };

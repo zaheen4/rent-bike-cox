@@ -8,6 +8,8 @@ import RenterDashboard from './pages/RenterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Checkout from './pages/Checkout';
 import Invoice from './pages/Invoice';
+import PaymentFailed from './pages/PaymentFailed';
+import PaymentCancelled from './pages/PaymentCancelled';
 import Login from './components/Login';
 import Signup from './components/Signup';
 
@@ -34,6 +36,8 @@ function App() {
             <Route path="/admin-dashboard" element={
               <ProtectedRoute allowedRoles={['Admin']}><AdminDashboard /></ProtectedRoute>
             } />
+            <Route path="/payment-failed" element={<PaymentFailed />} />
+            <Route path="/payment-cancelled" element={<PaymentCancelled />} />
           </Routes>
         </div>
       </AuthProvider>

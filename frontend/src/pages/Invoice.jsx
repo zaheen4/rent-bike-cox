@@ -3,10 +3,13 @@ import { useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { Bike, Printer } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from '../components/Toast';
 
 const Invoice = () => {
   const { bookingId } = useParams();
   const { user } = useAuth();
+  const { show: showToast, toasts, dismiss } = useToast();
   const [booking, setBooking] = useState(null);
   const [cancelling, setCancelling] = useState(false);
 
@@ -15,8 +18,8 @@ const Invoice = () => {
       try {
         const res = await api.get(`/booking/${bookingId}`);
         setBooking(res.data);
-      } catch (err) {
-        console.error(err);
+    } catch {
+        console.error('Failed to fetch booking');
       }
     };
     fetchBooking();
@@ -28,8 +31,8 @@ const Invoice = () => {
       setCancelling(true);
       await api.put(`/booking/${bookingId}/cancel`);
       setBooking({ ...booking, status: 'Cancelled' });
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to cancel booking');
+    } catch {
+      showToast('Failed to cancel booking', 'error');
     } finally {
       setCancelling(false);
     }
@@ -151,6 +154,7 @@ const Invoice = () => {
           #printable-invoice { border: none; box-shadow: none; margin: 0; padding: 0; }
         }
       `}</style>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 };

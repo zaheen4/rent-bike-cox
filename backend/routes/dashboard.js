@@ -4,6 +4,7 @@ const auth = require('../middleware/authMiddleware');
 const { 
   addBike, 
   getRenterBikes, 
+  toggleBikeAvailability,
   getGlobalSettings, 
   updateGlobalSettings, 
   getAllBikes,
@@ -24,6 +25,7 @@ router.get('/bikes/:id', getBikeById);
 // Renter routes
 router.post('/bikes', auth, upload.array('bikeImages', 5), addBike);
 router.get('/my-bikes', auth, getRenterBikes);
+router.put('/bikes/:id/availability', auth, toggleBikeAvailability);
 
 // Admin routes
 router.get('/admin/bikes', auth, getAllBikes);

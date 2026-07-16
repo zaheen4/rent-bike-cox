@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Settings, Tag, Users, Bike } from 'lucide-react';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from '../components/Toast';
 
 const AdminDashboard = () => {
+  const { show: showToast, toasts, dismiss } = useToast();
   const [settings, setSettings] = useState({ basePricePerHour: 200, packages: [] });
   const [bikes, setBikes] = useState([]);
   const [users, setUsers] = useState([]);
@@ -34,9 +37,9 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       await api.put('/dashboard/admin/settings', settings);
-      alert('Settings updated successfully!');
+      showToast('Settings updated successfully!', 'success');
     } catch {
-      alert('Failed to update settings');
+      showToast('Failed to update settings', 'error');
     }
   };
 
@@ -45,7 +48,7 @@ const AdminDashboard = () => {
       const res = await api.put(`/dashboard/admin/bikes/${bikeId}/verify`);
       setBikes(bikes.map(b => b._id === bikeId ? res.data : b));
     } catch {
-      alert('Failed to update bike verification');
+      showToast('Failed to update bike verification', 'error');
     }
   };
 
@@ -54,7 +57,7 @@ const AdminDashboard = () => {
       const res = await api.put(`/dashboard/admin/users/${userId}/verify`);
       setUsers(users.map(u => u._id === userId ? res.data : u));
     } catch {
-      alert('Failed to update user verification');
+      showToast('Failed to update user verification', 'error');
     }
   };
 
@@ -196,7 +199,7 @@ const AdminDashboard = () => {
               setCoupons([res.data, ...coupons]);
               setNewCoupon({ code: '', discountPercent: '' });
             } catch (err) {
-              alert(err.response?.data?.message || 'Failed to create coupon');
+              showToast(err.response?.data?.message || 'Failed to create coupon', 'error');
             }
           }} className="flex gap-4 mb-6">
             <input
@@ -248,7 +251,7 @@ const AdminDashboard = () => {
                           const res = await api.put(`/coupon/${coupon._id}`, { active: !coupon.active });
                           setCoupons(coupons.map(c => c._id === coupon._id ? res.data : c));
                         } catch {
-                          alert('Failed to toggle coupon');
+                          showToast('Failed to toggle coupon', 'error');
                         }
                       }}
                       className={`px-3 py-1 rounded text-xs ${coupon.active ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
@@ -262,7 +265,7 @@ const AdminDashboard = () => {
                           await api.delete(`/coupon/${coupon._id}`);
                           setCoupons(coupons.filter(c => c._id !== coupon._id));
                         } catch {
-                          alert('Failed to delete coupon');
+                          showToast('Failed to delete coupon', 'error');
                         }
                       }}
                       className="px-3 py-1 rounded text-xs bg-red-100 text-red-700 hover:bg-red-200"
@@ -279,6 +282,7 @@ const AdminDashboard = () => {
           </table>
         </div>
       )}
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 };

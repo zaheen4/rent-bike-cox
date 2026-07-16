@@ -34,6 +34,23 @@ exports.getRenterBikes = async (req, res) => {
   }
 };
 
+exports.toggleBikeAvailability = async (req, res) => {
+  try {
+    const bike = await Bike.findById(req.params.id);
+    if (!bike) return res.status(404).json({ message: 'Bike not found' });
+
+    if (bike.renter.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to update this bike' });
+    }
+
+    bike.availability = !bike.availability;
+    await bike.save();
+    res.json(bike);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // --- Public Actions ---
 
 exports.getAvailableBikes = async (req, res) => {
