@@ -8,39 +8,39 @@ Single source of truth for all remaining work. Each task is a checkbox. Work thr
 
 These things are broken or non-functional right now.
 
-- [ ] **1.1 Add public bike listing endpoint**
+- [x] **1.1 Add public bike listing endpoint**
   - File: `backend/controllers/dashboardController.js`, `backend/routes/dashboard.js`
   - Add `GET /api/dashboard/bikes/available` — returns all bikes with `availability: true` and populated renter name. No auth required.
 
-- [ ] **1.2 Add single bike detail endpoint**
+- [x] **1.2 Add single bike detail endpoint**
   - File: `backend/controllers/dashboardController.js`, `backend/routes/dashboard.js`
   - Add `GET /api/dashboard/bikes/:id` — returns a single bike with populated renter (name only).
 
-- [ ] **1.3 Home.jsx: Fetch real bikes**
+- [x] **1.3 Home.jsx: Fetch real bikes**
   - File: `frontend/src/pages/Home.jsx`
   - Replace mock data with `api.get('/dashboard/bikes/available')`. Show empty state ("No bikes available yet") when list is empty.
 
-- [ ] **1.4 BikeDetails.jsx: Fetch real bike**
+- [x] **1.4 BikeDetails.jsx: Fetch real bike**
   - File: `frontend/src/pages/BikeDetails.jsx`
   - Replace mock data with `api.get('/dashboard/bikes/${id}')`. Fetch packages from global settings (`GET /api/dashboard/settings`).
 
-- [ ] **1.5 Checkout.jsx: User-selectable duration**
+- [x] **1.5 Checkout.jsx: User-selectable duration**
   - File: `frontend/src/pages/Checkout.jsx`
   - Add date/time pickers for `startTime` and `endTime` instead of hardcoding 5 hours. Show duration breakdown (hours x rate = total).
 
-- [ ] **1.6 Fix payment amount inconsistency**
+- [x] **1.6 Fix payment amount inconsistency**
   - File: `backend/controllers/paymentController.js`
   - Currently hardcodes `totalPrice * 0.5`. Should match the `minAdvance` logic from `bookingController` (50% for <=24h, 30% for >24h). Store `minAdvance` on the Booking model or recalculate.
 
-- [ ] **1.7 Replace hardcoded localhost URLs**
+- [x] **1.7 Replace hardcoded localhost URLs**
   - File: `backend/controllers/paymentController.js`
   - Use `process.env.BACKEND_URL` and `process.env.FRONTEND_URL` for all success/fail/cancel redirect URLs. Add these to `backend/.env.example`.
 
-- [ ] **1.8 Persist global settings in DB**
+- [x] **1.8 Persist global settings in DB**
   - Files: New `backend/models/Settings.js`, `backend/controllers/dashboardController.js`
   - Replace in-memory `globalSettings` object with a `Settings` Mongoose model (singleton: one document). Seed defaults (`basePricePerHour: 200`, packages array) on first read if none exist.
 
-- [ ] **1.9 Add bike availability check before booking**
+- [x] **1.9 Add bike availability check before booking**
   - File: `backend/controllers/bookingController.js`
   - Before creating a booking, verify `bike.availability === true`. Return 409 if already booked.
 
@@ -50,39 +50,39 @@ These things are broken or non-functional right now.
 
 These features are required by the business rules but don't exist yet.
 
-- [ ] **2.1 Create AuthContext**
+- [x] **2.1 Create AuthContext**
   - File: New `frontend/src/context/AuthContext.jsx`, update `frontend/src/App.jsx`
   - React Context storing token + user (decoded from JWT). Wrap app in `<AuthProvider>`. All components read from context instead of raw `localStorage`.
 
-- [ ] **2.2 Create ProtectedRoute wrapper**
+- [x] **2.2 Create ProtectedRoute wrapper**
   - File: New `frontend/src/components/ProtectedRoute.jsx`, update `frontend/src/App.jsx`
   - If no token, redirect to `/login`. Wrap routes: `/checkout`, `/invoice`, `/renter-dashboard`, `/admin-dashboard`. Add role check for admin-only routes.
 
-- [ ] **2.3 Navbar reactivity**
+- [x] **2.3 Navbar reactivity**
   - File: `frontend/src/components/Navbar.jsx`
   - Read auth state from `AuthContext` instead of `localStorage`. Navbar auto-updates on login/logout without page reload.
 
-- [ ] **2.4 Admin: Verify/unverify bikes**
+- [x] **2.4 Admin: Verify/unverify bikes**
   - Files: `backend/models/Bike.js` (add `isVerified` field), `backend/controllers/dashboardController.js`, `backend/routes/dashboard.js`, `frontend/src/pages/AdminDashboard.jsx`
   - Add `PUT /api/dashboard/admin/bikes/:id/verify` — toggles `isVerified`. Show verification status in admin table. Only verified bikes appear in public listing (`GET /bikes/available`).
 
-- [ ] **2.5 Admin: User verification**
+- [x] **2.5 Admin: User verification**
   - Files: `backend/models/User.js` (add `isVerified` field), `backend/controllers/dashboardController.js`, `backend/routes/dashboard.js`, `frontend/src/pages/AdminDashboard.jsx`
   - Add `GET /api/dashboard/admin/users` and `PUT /api/dashboard/admin/users/:id/verify`. Users must be verified before they can book.
 
-- [ ] **2.6 Admin: Coupons management**
+- [x] **2.6 Admin: Coupons management**
   - Files: New `backend/models/Coupon.js`, `backend/controllers/couponController.js`, `backend/routes/coupon.js`, `frontend/src/pages/AdminDashboard.jsx`
   - Backend: CRUD for coupons (code, discount %, active flag). Frontend: table + add/edit form in the Coupons tab.
 
-- [ ] **2.7 Booking cancellation**
+- [x] **2.7 Booking cancellation**
   - Files: `backend/controllers/bookingController.js`, `backend/routes/booking.js`, `frontend/src/pages/Invoice.jsx`
   - Add `PUT /api/booking/:id/cancel` — sets status to Cancelled, re-enables bike availability. Add cancel button on invoice page (only if status is Pending or Confirmed).
 
-- [ ] **2.8 Package pricing in booking**
+- [x] **2.8 Package pricing in booking**
   - Files: `backend/controllers/bookingController.js`, `frontend/src/pages/Checkout.jsx`
   - Allow selecting a package (1 Day, 2 Days, 1 Week) instead of only hourly. Backend calculates total from package price. Fetch available packages from global settings.
 
-- [ ] **2.9 Booking verification restriction**
+- [x] **2.9 Booking verification restriction**
   - File: `backend/controllers/bookingController.js`
   - Before creating a booking, check that the user's NID and license are verified (`user.isVerified === true`). Return 403 if not.
 
