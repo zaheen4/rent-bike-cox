@@ -1,9 +1,16 @@
 const Booking = require('../models/Booking');
 const Bike = require('../models/Bike');
+const User = require('../models/User');
 
 exports.createBooking = async (req, res) => {
   try {
     const { bikeId, startTime, endTime, couponCode } = req.body;
+
+    const user = await User.findById(req.user.id);
+    if (!user || !user.isVerified) {
+      return res.status(403).json({ message: 'Your account must be verified by an admin before booking' });
+    }
+
     const bike = await Bike.findById(bikeId);
     if (!bike) return res.status(404).json({ message: 'Bike not found' });
     if (!bike.availability) return res.status(409).json({ message: 'Bike is not available for booking' });
@@ -70,6 +77,30 @@ exports.getBookingDetails = async (req, res) => {
             .populate('user', 'name email nid license phoneNumber address')
             .populate('bike', 'model brand pricePerHour');
         res.json(booking);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.cancelBooking = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        if (booking.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to cancel this booking' });
+        }
+
+        if (booking.status !== 'Pending' && booking.status !== 'Confirmed') {
+            return res.status(400).json({ message: 'Cannot cancel a booking with status: ' + booking.status });
+        }
+
+        booking.status = 'Cancelled';
+        await booking.save();
+
+        await Bike.findByIdAndUpdate(booking.bike, { availability: true });
+
+        res.json({ message: 'Booking cancelled', booking });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

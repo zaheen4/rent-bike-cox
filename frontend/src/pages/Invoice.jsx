@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { Bike, Printer } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Invoice = () => {
   const { bookingId } = useParams();
+  const { user } = useAuth();
   const [booking, setBooking] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -19,7 +22,22 @@ const Invoice = () => {
     fetchBooking();
   }, [bookingId]);
 
+  const handleCancel = async () => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      setCancelling(true);
+      await api.put(`/booking/${bookingId}/cancel`);
+      setBooking({ ...booking, status: 'Cancelled' });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel booking');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (!booking) return <div className="p-8 text-center">Loading Invoice...</div>;
+
+  const canCancel = user && booking.user._id === user.id && (booking.status === 'Pending' || booking.status === 'Confirmed');
 
   return (
     <div className="max-w-4xl mx-auto p-8 bg-white shadow-lg my-8 border border-gray-200" id="printable-invoice">
@@ -35,6 +53,26 @@ const Invoice = () => {
           <p>Date: {new Date(booking.createdAt).toLocaleDateString()}</p>
           <p>Contacts: 01891154443, 01764466757</p>
         </div>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
+        <span className={`px-3 py-1 rounded text-sm font-medium ${
+          booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
+          booking.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+          booking.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
+          'bg-yellow-100 text-yellow-700'
+        }`}>
+          {booking.status}
+        </span>
+        {canCancel && (
+          <button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel Booking'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-12 mb-8">
@@ -99,7 +137,7 @@ const Invoice = () => {
         </div>
       </div>
 
-      <button 
+      <button
         onClick={() => window.print()}
         className="mt-8 flex items-center bg-gray-800 text-white px-4 py-2 rounded no-print"
       >

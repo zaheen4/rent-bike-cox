@@ -105,3 +105,39 @@ exports.getAllBikes = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.toggleBikeVerification = async (req, res) => {
+  try {
+    if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
+    const bike = await Bike.findById(req.params.id);
+    if (!bike) return res.status(404).json({ message: 'Bike not found' });
+    bike.isVerified = !bike.isVerified;
+    await bike.save();
+    res.json(bike);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.toggleUserVerification = async (req, res) => {
+  try {
+    if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.isVerified = !user.isVerified;
+    await user.save();
+    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, isVerified: user.isVerified });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

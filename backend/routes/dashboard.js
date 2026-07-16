@@ -8,7 +8,10 @@ const {
   updateGlobalSettings, 
   getAllBikes,
   getAvailableBikes,
-  getBikeById
+  getBikeById,
+  toggleBikeVerification,
+  getAllUsers,
+  toggleUserVerification
 } = require('../controllers/dashboardController');
 
 const upload = require('../middleware/uploadMiddleware');
@@ -24,6 +27,9 @@ router.get('/my-bikes', auth, getRenterBikes);
 
 // Admin routes
 router.get('/admin/bikes', auth, getAllBikes);
+router.put('/admin/bikes/:id/verify', auth, toggleBikeVerification);
+router.get('/admin/users', auth, getAllUsers);
+router.put('/admin/users/:id/verify', auth, toggleUserVerification);
 router.put('/admin/settings', auth, updateGlobalSettings);
 
 module.exports = router;

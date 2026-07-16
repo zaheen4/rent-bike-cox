@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
   nidImage: { type: String }, // URL to Cloudinary
   licenseImage: { type: String }, // URL to Cloudinary
   phoneNumber: { type: String, required: true },
-  address: { type: String }
+  address: { type: String },
+  isVerified: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
