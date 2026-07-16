@@ -13,8 +13,10 @@ const formatDateTime = (date) => {
 const Checkout = () => {
   const { bikeId } = useParams();
   const [bike, setBike] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [selectedPackage, setSelectedPackage] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [bookingData, setBookingData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,8 +25,12 @@ const Checkout = () => {
   useEffect(() => {
     const fetchBike = async () => {
       try {
-        const res = await api.get(`/dashboard/bikes/${bikeId}`);
-        setBike(res.data);
+        const [bikeRes, settingsRes] = await Promise.all([
+          api.get(`/dashboard/bikes/${bikeId}`),
+          api.get('/dashboard/settings')
+        ]);
+        setBike(bikeRes.data);
+        setSettings(settingsRes.data);
         const now = new Date();
         const later = new Date(now.getTime() + 5 * 60 * 60 * 1000);
         setStartTime(formatDateTime(now));
@@ -45,7 +51,8 @@ const Checkout = () => {
           bikeId,
           startTime: new Date(startTime),
           endTime: new Date(endTime),
-          couponCode
+          couponCode,
+          packageName: selectedPackage || undefined
         });
         setBookingData(res.data);
       } catch (err) {
@@ -54,7 +61,26 @@ const Checkout = () => {
       }
     };
     createBooking();
-  }, [startTime, endTime, couponCode, bikeId]);
+  }, [startTime, endTime, couponCode, selectedPackage, bikeId]);
+
+  const handlePackageSelect = (pkg) => {
+    setSelectedPackage(pkg.name);
+    const now = new Date();
+    let end;
+    if (pkg.name === '1 Day') {
+      end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    } else if (pkg.name === '2 Days') {
+      end = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    } else if (pkg.name === '1 Week') {
+      end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+    setStartTime(formatDateTime(now));
+    setEndTime(formatDateTime(end));
+  };
+
+  const handleCustomDuration = () => {
+    setSelectedPackage('');
+  };
 
   const handlePayment = async () => {
     try {
@@ -98,6 +124,29 @@ const Checkout = () => {
           <p className="text-blue-600 font-semibold mt-1">{bike.pricePerHour} TK / Hour</p>
         </div>
 
+        {/* Package Selection */}
+        {settings?.packages?.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select a Package (optional)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {settings.packages.map((pkg) => (
+                <button
+                  key={pkg.name}
+                  onClick={() => handlePackageSelect(pkg)}
+                  className={`p-3 rounded border text-center transition ${
+                    selectedPackage === pkg.name
+                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                >
+                  <div className="font-bold">{pkg.name}</div>
+                  <div className="text-lg">{pkg.price} TK</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Duration Selection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -105,7 +154,7 @@ const Checkout = () => {
             <input
               type="datetime-local"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={(e) => { setStartTime(e.target.value); handleCustomDuration(); }}
               className="w-full border p-2 rounded"
             />
           </div>
@@ -114,11 +163,14 @@ const Checkout = () => {
             <input
               type="datetime-local"
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              onChange={(e) => { setEndTime(e.target.value); handleCustomDuration(); }}
               className="w-full border p-2 rounded"
             />
           </div>
         </div>
+        {selectedPackage && (
+          <p className="text-sm text-blue-600">Package selected: {selectedPackage}</p>
+        )}
 
         {/* Coupon */}
         <div>
@@ -147,7 +199,10 @@ const Checkout = () => {
 
             <div className="text-sm text-gray-500 space-y-1">
               <p>Duration: {formatDisplayDate(startTime)} to {formatDisplayDate(endTime)}</p>
-              {bookingData.booking.totalPrice !== bike.pricePerHour * Math.ceil((new Date(endTime) - new Date(startTime)) / (1000 * 60 * 60)) && (
+              {selectedPackage && (
+                <p className="text-green-600">Package discount applied</p>
+              )}
+              {couponCode && (
                 <p className="text-green-600">Coupon applied: {couponCode}</p>
               )}
             </div>
