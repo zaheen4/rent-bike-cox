@@ -1,18 +1,6 @@
 const Coupon = require('../models/Coupon');
 
-exports.createCoupon = async (req, res) => {
-  try {
-    if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
-    const { code, discountPercent } = req.body;
-    const coupon = await Coupon.create({ code, discountPercent });
-    res.status(201).json(coupon);
-  } catch (error) {
-    if (error.code === 11000) return res.status(409).json({ message: 'Coupon code already exists' });
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getCoupons = async (req, res) => {
+exports.getAllCoupons = async (req, res) => {
   try {
     if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
     const coupons = await Coupon.find().sort({ createdAt: -1 });
@@ -22,11 +10,43 @@ exports.getCoupons = async (req, res) => {
   }
 };
 
+exports.createCoupon = async (req, res) => {
+  try {
+    if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
+    const { code, discountPercent, maxUses, expiresAt } = req.body;
+    
+    const existingCoupon = await Coupon.findOne({ code: code.toUpperCase() });
+    if (existingCoupon) {
+      return res.status(400).json({ message: 'Coupon code already exists' });
+    }
+
+    const coupon = new Coupon({
+      code: code.toUpperCase(),
+      discountPercent,
+      maxUses: maxUses || 0,
+      expiresAt: expiresAt || null
+    });
+    await coupon.save();
+    res.status(201).json(coupon);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.updateCoupon = async (req, res) => {
   try {
     if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
-    const coupon = await Coupon.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const coupon = await Coupon.findById(req.params.id);
     if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
+
+    const { code, discountPercent, isActive, maxUses, expiresAt } = req.body;
+    if (code) coupon.code = code.toUpperCase();
+    if (discountPercent !== undefined) coupon.discountPercent = discountPercent;
+    if (isActive !== undefined) coupon.isActive = isActive;
+    if (maxUses !== undefined) coupon.maxUses = maxUses;
+    if (expiresAt !== undefined) coupon.expiresAt = expiresAt;
+
+    await coupon.save();
     res.json(coupon);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -38,18 +58,7 @@ exports.deleteCoupon = async (req, res) => {
     if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Access denied' });
     const coupon = await Coupon.findByIdAndDelete(req.params.id);
     if (!coupon) return res.status(404).json({ message: 'Coupon not found' });
-    res.json({ message: 'Coupon deleted' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.validateCoupon = async (req, res) => {
-  try {
-    const { code } = req.params;
-    const coupon = await Coupon.findOne({ code: code.toUpperCase(), active: true });
-    if (!coupon) return res.status(404).json({ message: 'Invalid or inactive coupon' });
-    res.json({ code: coupon.code, discountPercent: coupon.discountPercent });
+    res.json({ message: 'Coupon deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

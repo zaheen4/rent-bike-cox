@@ -1,11 +1,19 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
-export default function ProtectedRoute({ children, allowedRoles }) {
-  const { user } = useAuth();
+export default function ProtectedRoute({ children, roles }) {
+  const { user, token, loading } = useAuth();
 
-  if (!user) return <Navigate to="/login" replace />;
-  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!token) return <Navigate to="/login" replace />;
+  if (roles && user && !roles.includes(user.role)) return <Navigate to="/" replace />;
 
   return children;
 }

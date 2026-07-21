@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
-import { CreditCard } from 'lucide-react';
-import Spinner from '../components/Spinner';
+import { CreditCard, AlertTriangle, Tag, MapPin, Clock, CheckCircle, Loader2 } from 'lucide-react';
+import { SkeletonPage } from '../components/ui/Skeleton';
 
 const formatDateTime = (date) => {
   const d = new Date(date);
@@ -13,49 +13,47 @@ const formatDateTime = (date) => {
 
 const Checkout = () => {
   const { bikeId } = useParams();
+  const navigate = useNavigate();
   const [bike, setBike] = useState(null);
   const [settings, setSettings] = useState(null);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [selectedPackage, setSelectedPackage] = useState('');
   const [couponCode, setCouponCode] = useState('');
+  const [selectedPackage, setSelectedPackage] = useState(null);
   const [bookingData, setBookingData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [destination, setDestination] = useState('');
 
   useEffect(() => {
-    const fetchBike = async () => {
-      try {
-        const [bikeRes, settingsRes] = await Promise.all([
-          api.get(`/dashboard/bikes/${bikeId}`),
-          api.get('/dashboard/settings')
-        ]);
-        setBike(bikeRes.data);
-        setSettings(settingsRes.data);
-        const now = new Date();
-        const later = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-        setStartTime(formatDateTime(now));
-        setEndTime(formatDateTime(later));
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchBike();
+    Promise.all([
+      api.get(`/dashboard/bikes/${bikeId}`),
+      api.get('/dashboard/settings')
+    ]).then(([bikeRes, settingsRes]) => {
+      setBike(bikeRes.data);
+      setSettings(settingsRes.data);
+      const now = new Date();
+      const later = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+      setStartTime(formatDateTime(now));
+      setEndTime(formatDateTime(later));
+    }).catch(() => {});
   }, [bikeId]);
 
   useEffect(() => {
-    if (!startTime || !endTime) return;
+    if (!startTime || !endTime || !bike) return;
     const createBooking = async () => {
+      setError('');
       try {
-        setError('');
-        const res = await api.post('/booking', {
+        const payload = {
           bikeId,
           startTime: new Date(startTime),
           endTime: new Date(endTime),
           couponCode,
-          packageName: selectedPackage || undefined
-        });
+          destination
+        };
+        if (selectedPackage !== null) payload.packageIndex = selectedPackage;
+        const res = await api.post('/booking', payload);
         setBookingData(res.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to create booking');
@@ -63,35 +61,18 @@ const Checkout = () => {
       }
     };
     createBooking();
-  }, [startTime, endTime, couponCode, selectedPackage, bikeId]);
-
-  const handlePackageSelect = (pkg) => {
-    setSelectedPackage(pkg.name);
-    const now = new Date();
-    let end;
-    if (pkg.name === '1 Day') {
-      end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    } else if (pkg.name === '2 Days') {
-      end = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    } else if (pkg.name === '1 Week') {
-      end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    }
-    setStartTime(formatDateTime(now));
-    setEndTime(formatDateTime(end));
-  };
-
-  const handleCustomDuration = () => {
-    setSelectedPackage('');
-  };
+  }, [startTime, endTime, couponCode, selectedPackage, bikeId, bike, destination]);
 
   const handlePayment = async () => {
     try {
       setLoading(true);
-      const response = await api.post('/payment/init', {
-        bookingId: bookingData.booking._id
-      });
+      setError('');
+      const response = await api.post('/payment/init', { bookingId: bookingData.booking._id });
       if (response.data.url) {
         window.location.replace(response.data.url);
+      } else {
+        setError('Payment gateway unavailable. Use "Confirm Booking" below for direct confirmation.');
+        setLoading(false);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Payment initialization failed');
@@ -99,50 +80,61 @@ const Checkout = () => {
     }
   };
 
-  const formatDisplayDate = (dateStr) => {
-    return new Date(dateStr).toLocaleString('en-BD', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
+  const handleDirectConfirm = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await api.post('/booking/confirm', {
+        bookingId: bookingData.booking._id,
+        amountPaid: bookingData.minAdvance
+      });
+      navigate(`/invoice/${response.data.booking._id}`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Confirmation failed');
+      setLoading(false);
+    }
   };
 
-  if (!bike) return <Spinner />;
+  const handlePackageSelect = (index) => setSelectedPackage(selectedPackage === index ? null : index);
+  const formatDisplayDate = (dateStr) => new Date(dateStr).toLocaleString('en-BD', { dateStyle: 'medium', timeStyle: 'short' });
+
+  if (!bike || !settings) return <SkeletonPage />;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+    <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in">
+      <h1 className="text-3xl font-bold text-white mb-8">Checkout</h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl mb-6 text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+      <div className="glass rounded-3xl p-6 sm:p-8 space-y-6">
         {/* Bike Info */}
-        <div className="border-b pb-4">
-          <h2 className="text-xl font-bold">{bike.model}</h2>
-          <p className="text-gray-600">{bike.brand} - {bike.category}</p>
-          <p className="text-blue-600 font-semibold mt-1">{bike.pricePerHour} TK / Hour</p>
+        <div className="flex items-center gap-4 pb-5 border-b border-white/10">
+          {bike.images?.[0] && <img src={bike.images[0]} alt={bike.model} className="w-16 h-16 rounded-xl object-cover" />}
+          <div>
+            <h2 className="text-lg font-bold text-white">{bike.model}</h2>
+            <p className="text-gray-400 text-sm">{bike.brand} - {bike.category?.name || 'N/A'}</p>
+            <p className="text-cyan-400 font-bold text-sm mt-0.5">{bike.pricePerHour} TK / Hour</p>
+          </div>
         </div>
 
         {/* Package Selection */}
-        {settings?.packages?.length > 0 && (
+        {settings.packages?.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select a Package (optional)</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {settings.packages.map((pkg) => (
-                <button
-                  key={pkg.name}
-                  onClick={() => handlePackageSelect(pkg)}
-                  className={`p-3 rounded border text-center transition ${
-                    selectedPackage === pkg.name
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-blue-300'
-                  }`}
-                >
-                  <div className="font-bold">{pkg.name}</div>
-                  <div className="text-lg">{pkg.price} TK</div>
+            <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wide">Choose a Package</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {settings.packages.map((pkg, index) => (
+                <button key={index} onClick={() => handlePackageSelect(index)}
+                  className={`p-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                    selectedPackage === index
+                      ? 'border-primary-500 bg-primary-500/10 shadow-lg shadow-primary-500/10'
+                      : 'border-white/10 hover:border-white/20'
+                  }`}>
+                  <p className="font-bold text-sm text-white">{pkg.name}</p>
+                  <p className="text-cyan-400 font-semibold text-sm">{pkg.price} TK</p>
                 </button>
               ))}
             </div>
@@ -150,109 +142,120 @@ const Checkout = () => {
         )}
 
         {/* Duration Selection */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-            <input
-              type="datetime-local"
-              value={startTime}
-              onChange={(e) => { setStartTime(e.target.value); handleCustomDuration(); }}
-              className="w-full border p-2 rounded"
-            />
+        {selectedPackage === null && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Start Time</label>
+              <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="input-dark text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">End Time</label>
+              <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="input-dark text-sm" />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-            <input
-              type="datetime-local"
-              value={endTime}
-              onChange={(e) => { setEndTime(e.target.value); handleCustomDuration(); }}
-              className="w-full border p-2 rounded"
-            />
+        )}
+
+        {/* Selected Package Info */}
+        {selectedPackage !== null && settings.packages[selectedPackage] && (
+          <div className="glass p-4 rounded-xl flex items-center justify-between border border-primary-500/20">
+            <div className="flex items-center">
+              <CheckCircle size={18} className="text-primary-400 mr-2" />
+              <span className="font-bold text-white">{settings.packages[selectedPackage].name}</span>
+            </div>
+            <span className="font-bold text-cyan-400">{settings.packages[selectedPackage].price} TK</span>
           </div>
-        </div>
-        {selectedPackage && (
-          <p className="text-sm text-blue-600">Package selected: {selectedPackage}</p>
         )}
 
         {/* Coupon */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Coupon Code (optional)</label>
-          <input
-            type="text"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
-            placeholder="e.g. WELCOME10"
-            className="w-full border p-2 rounded"
-          />
+          <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">
+            <Tag size={12} className="inline mr-1" /> Coupon Code (optional)
+          </label>
+          <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="Enter coupon code" className="input-dark text-sm" />
+        </div>
+
+        {/* Destination */}
+        <div>
+          <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">
+            <MapPin size={12} className="inline mr-1" /> Destination / Trip Plan
+          </label>
+          <input type="text" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="e.g. Cox's Bazar Beach, Inani, Himchari" className="input-dark text-sm" />
         </div>
 
         {/* Price Breakdown */}
         {bookingData && (
           <>
-            <div className="flex justify-between border-b pb-4">
-              <span className="text-gray-600">Total Price:</span>
-              <span className="font-bold text-xl">{bookingData.booking.totalPrice} TK</span>
+            <div className="glass rounded-2xl p-5 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Total Price</span>
+                <span className="font-bold text-lg text-white">{bookingData.booking.totalPrice} TK</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-400">Advance Required</span>
+                <span className="font-bold text-xl text-cyan-400">{bookingData.minAdvance} TK</span>
+              </div>
+              <div className="text-xs text-gray-500 space-y-0.5 pt-2 border-t border-white/10">
+                {selectedPackage !== null ? (
+                  <p className="flex items-center"><Clock size={12} className="mr-1" /> Package: {settings.packages[selectedPackage]?.name}</p>
+                ) : (
+                  <p className="flex items-center"><Clock size={12} className="mr-1" /> {formatDisplayDate(startTime)} → {formatDisplayDate(endTime)}</p>
+                )}
+                {couponCode && <p className="text-green-400">Coupon: {couponCode} applied</p>}
+              </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center text-blue-800">
-              <span className="font-medium">Advance Required:</span>
-              <span className="font-bold text-2xl">{bookingData.minAdvance} TK</span>
-            </div>
-
-            <div className="text-sm text-gray-500 space-y-1">
-              <p>Duration: {formatDisplayDate(startTime)} to {formatDisplayDate(endTime)}</p>
-              {selectedPackage && (
-                <p className="text-green-600">Package discount applied</p>
-              )}
-              {couponCode && (
-                <p className="text-green-600">Coupon applied: {couponCode}</p>
-              )}
-            </div>
-
-            {/* Terms & Conditions */}
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <h4 className="font-bold text-sm mb-2">Terms & Conditions</h4>
-              <ul className="text-xs text-gray-600 space-y-1 mb-3">
-                <li>• Petrol cost is not included in the rental price</li>
-                <li>• 1,000 TK fine for taking the bike on beach sand</li>
-                <li>• 2,000 TK fine for lost or damaged helmet</li>
-                <li>• 5,000 TK fine for crossing the designated boundary</li>
-                <li>• You are liable for any physical damage to the vehicle</li>
+            {/* Terms */}
+            <div className="glass rounded-2xl p-5 border border-amber-500/10">
+              <h3 className="font-bold text-amber-300 flex items-center mb-3 text-sm">
+                <AlertTriangle size={16} className="mr-2" /> Terms & Conditions
+              </h3>
+              <ul className="text-xs text-gray-400 space-y-1.5 mb-4">
+                <li>• Petrol cost borne by the customer</li>
+                <li>• Beach sand: <strong className="text-amber-400">1,000 TK fine</strong></li>
+                <li>• Lost helmet: <strong className="text-amber-400">2,000 TK fine</strong></li>
+                <li>• Beyond Teknaf: <strong className="text-amber-400">5,000 TK fine</strong></li>
+                <li>• Renter liable for all accidents/damage</li>
               </ul>
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={termsAccepted}
-                  onChange={(e) => setTermsAccepted(e.target.checked)}
-                  className="mt-1"
-                />
-                <span className="text-sm">I have read and agree to the Terms & Conditions</span>
+              <Link to="/policies" target="_blank" className="text-xs text-cyan-400 hover:text-cyan-300 font-medium underline block mb-3">
+                Read full Policies & Terms
+              </Link>
+              <label className="flex items-start cursor-pointer">
+                <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 mr-2.5 h-4 w-4 text-primary-500 rounded border-white/20 bg-white/5 focus:ring-primary-500" />
+                <span className="text-xs text-gray-400">I have read and agree to all terms and conditions.</span>
               </label>
             </div>
 
             {/* Payment */}
-            <div className="space-y-4 pt-4">
-              <h3 className="font-bold flex items-center">
-                <CreditCard className="mr-2" /> Pay with SSLCommerz (bKash/Nagad/Bank)
-              </h3>
-              <p className="text-sm text-gray-500">You will be redirected to the secure payment gateway.</p>
-
-              <button
-                onClick={handlePayment}
-                disabled={loading || !termsAccepted}
-                className={`w-full p-4 rounded font-bold text-white transition bg-blue-600 hover:bg-blue-700 ${(loading || !termsAccepted) && 'opacity-50 cursor-not-allowed'}`}
-              >
-                {loading ? 'Initializing Payment...' : 'Proceed to Payment'}
+            <div className="space-y-3">
+              <button onClick={handlePayment} disabled={loading || !agreedToTerms}
+                className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-300 flex items-center justify-center ${
+                  loading || !agreedToTerms
+                    ? 'bg-white/10 cursor-not-allowed text-gray-500'
+                    : 'gradient-primary shadow-lg shadow-blue-500/25 hover:shadow-xl hover:-translate-y-0.5'
+                }`}>
+                {loading ? <Loader2 size={20} className="mr-2 animate-spin" /> : <CreditCard size={20} className="mr-2" />}
+                {loading ? 'Processing...' : `Pay ${bookingData.minAdvance} TK via SSLCommerz`}
               </button>
-              {!termsAccepted && (
-                <p className="text-xs text-red-500 text-center">Please accept the Terms & Conditions to proceed</p>
+              <button onClick={handleDirectConfirm} disabled={loading || !agreedToTerms}
+                className={`w-full py-3 rounded-xl font-bold transition-all duration-300 flex items-center justify-center border-2 ${
+                  loading || !agreedToTerms
+                    ? 'border-white/10 text-gray-500 cursor-not-allowed'
+                    : 'border-green-500/50 text-green-400 hover:bg-green-500/10'
+                }`}>
+                <CheckCircle size={20} className="mr-2" />
+                {loading ? 'Processing...' : `Confirm Booking (${bookingData.minAdvance} TK Advance)`}
+              </button>
+              <p className="text-center text-xs text-gray-500">bKash / Nagad / Bank Transfer via secure SSLCommerz gateway</p>
+              {!agreedToTerms && bookingData && (
+                <p className="text-xs text-red-400 text-center">Please agree to terms to proceed</p>
               )}
             </div>
           </>
         )}
 
-        <p className="text-center text-amber-600 text-sm mt-4 italic">
-          Note: Your booking will only be confirmed after a successful advance payment.
+        <p className="text-center text-xs text-gray-500 pt-2">
+          Booking confirmed only after successful advance payment
         </p>
       </div>
     </div>

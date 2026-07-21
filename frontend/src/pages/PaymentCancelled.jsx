@@ -1,22 +1,27 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { XCircle, Home, RefreshCw } from 'lucide-react';
 
-const PaymentCancelled = () => {
-  return (
-    <div className="max-w-md mx-auto px-4 py-16 text-center">
-      <AlertTriangle className="mx-auto text-amber-500 mb-4" size={64} />
-      <h1 className="text-2xl font-bold mb-2">Payment Cancelled</h1>
-      <p className="text-gray-600 mb-8">
-        You cancelled the payment process. Your booking has not been confirmed.
-      </p>
-      <Link
-        to="/"
-        className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-      >
-        Back to Home
-      </Link>
+const PaymentCancelled = () => (
+  <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 gradient-hero relative overflow-hidden">
+    <div className="absolute inset-0 opacity-20">
+      <div className="absolute top-20 right-20 w-96 h-96 bg-amber-500 rounded-full blur-[120px]" />
     </div>
-  );
-};
+    <div className="glass rounded-3xl p-6 sm:p-10 text-center max-w-md w-full animate-slide-up relative">
+      <div className="w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-6">
+        <XCircle size={40} className="text-amber-400" />
+      </div>
+      <h1 className="text-2xl font-bold text-white mb-2">Payment Cancelled</h1>
+      <p className="text-gray-400 mb-8">You cancelled the payment. Your booking is not confirmed.</p>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Link to="/" className="btn-primary flex-1 flex items-center justify-center">
+          <Home size={18} className="mr-2" /> Go Home
+        </Link>
+        <button onClick={() => window.history.back()} className="btn-ghost flex-1 flex items-center justify-center">
+          <RefreshCw size={18} className="mr-2" /> Try Again
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 export default PaymentCancelled;
