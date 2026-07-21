@@ -1,40 +1,51 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useState, useCallback } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext(null);
+export { AuthContext };
 
-function parseToken(token) {
+function getInitialUser() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
   try {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload));
+    const decoded = jwtDecode(token);
+    const currentTime = Date.now() / 1000;
+    if (decoded.exp < currentTime) {
+      localStorage.removeItem('token');
+      return null;
+    }
+    return decoded;
   } catch {
+    localStorage.removeItem('token');
     return null;
   }
 }
 
 export function AuthProvider({ children }) {
+  const [user, setUser] = useState(getInitialUser);
   const [token, setToken] = useState(() => localStorage.getItem('token'));
-
-  const user = token ? parseToken(token) : null;
-
-  const login = useCallback((newToken) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
-  }, []);
+  const [loading] = useState(false);
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
+    setUser(null);
+  }, []);
+
+  const login = useCallback((newToken) => {
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
+    try {
+      const decoded = jwtDecode(newToken);
+      setUser(decoded);
+    } catch {
+      setUser(null);
+    }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
 }
